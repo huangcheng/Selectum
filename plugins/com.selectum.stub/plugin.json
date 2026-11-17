@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "id": "com.selectum.stub",
+  "name": "Stub",
+  "version": "0.1.0",
+  "apiVersion": 1,
+  "entry": { "native": "stub" },
+  "triggers": ["selection"],
+  "capabilities": [],
+  "match": { "minLength": 1, "editableOnly": false, "appAllow": [], "appDeny": [], "regex": null },
+  "config": []
+}

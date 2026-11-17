@@ -38,3 +38,20 @@ target_compile_definitions(test_plugin_manifest
 )
 
 add_test(NAME test_plugin_manifest COMMAND test_plugin_manifest)
+
+qt_add_executable(test_plugin_host
+    test_plugin_host.cpp
+)
+
+target_link_libraries(test_plugin_host
+    PRIVATE
+        selectum_core
+        Qt::Test
+)
+
+target_compile_definitions(test_plugin_host
+    PRIVATE
+        SELECTUM_TEST_PLUGINS_DIR="${CMAKE_BINARY_DIR}/plugins"
+)
+
+add_test(NAME test_plugin_host COMMAND test_plugin_host)

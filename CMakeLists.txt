@@ -23,6 +23,8 @@ target_link_libraries(selectum_abi
 add_library(selectum_core STATIC
     src/core/match_engine.cpp
     src/core/plugin_manifest.cpp
+    src/core/stub_secrets_store.cpp
+    src/core/plugin_host.cpp
 )
 target_include_directories(selectum_core
     PUBLIC
@@ -37,6 +39,8 @@ target_link_libraries(selectum_core
 
 enable_testing()
 add_subdirectory(tests)
+add_subdirectory(plugins/com.selectum.stub)
+add_dependencies(test_plugin_host com_selectum_stub)
 
 set(SELECTUM_APP_ICON_ICNS "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand/Selectum.icns")
 set(SELECTUM_APP_ICON_ICO "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand/Selectum.ico")
