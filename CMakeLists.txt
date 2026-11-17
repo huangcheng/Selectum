@@ -20,6 +20,20 @@ target_link_libraries(selectum_abi
         Qt::Core
 )
 
+add_library(selectum_core STATIC
+    src/core/match_engine.cpp
+)
+target_include_directories(selectum_core
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(selectum_core
+    PUBLIC
+        selectum_abi
+        Qt::Core
+)
+
 enable_testing()
 add_subdirectory(tests)
 
