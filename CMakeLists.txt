@@ -25,6 +25,7 @@ add_library(selectum_core STATIC
     src/core/plugin_manifest.cpp
     src/core/stub_secrets_store.cpp
     src/core/plugin_host.cpp
+    src/core/invoke_async.cpp
 )
 target_include_directories(selectum_core
     PUBLIC
@@ -47,10 +48,12 @@ set(SELECTUM_APP_ICON_ICO "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand/Selectum.ico
 
 qt_add_executable(Selectum
     WIN32 MACOSX_BUNDLE
-    main.cpp
-    mainwindow.cpp
-    mainwindow.h
-    mainwindow.ui
+    src/host/main.cpp
+    src/host/mainwindow.cpp
+    src/host/mainwindow.h
+    src/host/mainwindow.ui
+    src/host/fake_selection_injector.cpp
+    src/host/fake_selection_injector.h
     ${SELECTUM_APP_ICON_ICNS}
 )
 
@@ -70,10 +73,32 @@ qt_add_translations(
     TS_FILES Selectum_zh_CN.ts
 )
 
+target_compile_definitions(Selectum
+    PRIVATE
+        SELECTUM_BUILD_PLUGINS_DIR="${CMAKE_BINARY_DIR}/plugins"
+)
+
 target_link_libraries(Selectum
     PRIVATE
+        selectum_core
         Qt::Core
         Qt::Widgets
+)
+
+# Deploy stub plugin next to the app binary (Contents/MacOS/plugins on macOS).
+add_dependencies(Selectum com_selectum_stub)
+add_custom_command(TARGET Selectum POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E rm -rf
+        "$<TARGET_FILE_DIR:Selectum>/plugins/com.selectum.stub"
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        "$<TARGET_FILE_DIR:Selectum>/plugins/com.selectum.stub"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:com_selectum_stub>"
+        "$<TARGET_FILE_DIR:Selectum>/plugins/com.selectum.stub/$<TARGET_FILE_NAME:com_selectum_stub>"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/plugins/com.selectum.stub/plugin.json"
+        "$<TARGET_FILE_DIR:Selectum>/plugins/com.selectum.stub/plugin.json"
+    COMMENT "Deploy stub plugin beside Selectum"
 )
 
 set_target_properties(Selectum PROPERTIES

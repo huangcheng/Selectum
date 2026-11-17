@@ -55,3 +55,22 @@ target_compile_definitions(test_plugin_host
 )
 
 add_test(NAME test_plugin_host COMMAND test_plugin_host)
+
+qt_add_executable(test_invoke_async
+    test_invoke_async.cpp
+)
+
+target_link_libraries(test_invoke_async
+    PRIVATE
+        selectum_core
+        Qt::Test
+)
+
+target_compile_definitions(test_invoke_async
+    PRIVATE
+        SELECTUM_TEST_PLUGINS_DIR="${CMAKE_BINARY_DIR}/plugins"
+)
+
+add_dependencies(test_invoke_async com_selectum_stub)
+
+add_test(NAME test_invoke_async COMMAND test_invoke_async)
