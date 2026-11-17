@@ -1,9 +1,27 @@
 cmake_minimum_required(VERSION 3.19)
 project(Selectum LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets LinguistTools)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Test LinguistTools)
 
 qt_standard_project_setup()
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_library(selectum_abi STATIC
+    src/abi/json.cpp
+)
+target_include_directories(selectum_abi
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(selectum_abi
+    PUBLIC
+        Qt::Core
+)
+
+enable_testing()
+add_subdirectory(tests)
 
 set(SELECTUM_APP_ICON_ICNS "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand/Selectum.icns")
 set(SELECTUM_APP_ICON_ICO "${CMAKE_CURRENT_SOURCE_DIR}/assets/brand/Selectum.ico")
