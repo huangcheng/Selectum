@@ -21,3 +21,20 @@ target_link_libraries(test_match_engine
 )
 
 add_test(NAME test_match_engine COMMAND test_match_engine)
+
+qt_add_executable(test_plugin_manifest
+    test_plugin_manifest.cpp
+)
+
+target_link_libraries(test_plugin_manifest
+    PRIVATE
+        selectum_core
+        Qt::Test
+)
+
+target_compile_definitions(test_plugin_manifest
+    PRIVATE
+        SELECTUM_TEST_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+)
+
+add_test(NAME test_plugin_manifest COMMAND test_plugin_manifest)

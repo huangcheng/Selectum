@@ -22,6 +22,7 @@ target_link_libraries(selectum_abi
 
 add_library(selectum_core STATIC
     src/core/match_engine.cpp
+    src/core/plugin_manifest.cpp
 )
 target_include_directories(selectum_core
     PUBLIC
