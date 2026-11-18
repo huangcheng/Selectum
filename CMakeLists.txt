@@ -38,11 +38,19 @@ target_link_libraries(selectum_core
         Qt::Core
 )
 
-add_library(selectum_platform STATIC
+set(SELECTUM_PLATFORM_SOURCES
     src/platform/selection_settle.cpp
     src/platform/selection_monitor.cpp
     src/platform/noop_selection_monitor.cpp
 )
+if(APPLE)
+    list(APPEND SELECTUM_PLATFORM_SOURCES
+        src/platform/macos/ax_selection.mm
+        src/platform/macos/selection_monitor_mac.mm
+    )
+endif()
+
+add_library(selectum_platform STATIC ${SELECTUM_PLATFORM_SOURCES})
 target_include_directories(selectum_platform
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/include
@@ -53,7 +61,21 @@ target_link_libraries(selectum_platform
         selectum_abi
         Qt::Core
 )
-# MOC for SelectionMonitor / NoopSelectionMonitor Q_OBJECT
+if(APPLE)
+    target_link_libraries(selectum_platform
+        PUBLIC
+            "-framework ApplicationServices"
+            "-framework AppKit"
+            "-framework Foundation"
+    )
+    set_source_files_properties(
+        src/platform/macos/ax_selection.mm
+        src/platform/macos/selection_monitor_mac.mm
+        PROPERTIES
+            COMPILE_FLAGS "-fobjc-arc"
+    )
+endif()
+# MOC for SelectionMonitor / NoopSelectionMonitor / SelectionMonitorMac Q_OBJECT
 set_target_properties(selectum_platform PROPERTIES AUTOMOC ON)
 
 enable_testing()
