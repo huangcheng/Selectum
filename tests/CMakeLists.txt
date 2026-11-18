@@ -74,3 +74,15 @@ target_compile_definitions(test_invoke_async
 add_dependencies(test_invoke_async com_selectum_stub)
 
 add_test(NAME test_invoke_async COMMAND test_invoke_async)
+
+qt_add_executable(test_selection_settle
+    test_selection_settle.cpp
+)
+
+target_link_libraries(test_selection_settle
+    PRIVATE
+        selectum_platform
+        Qt::Test
+)
+
+add_test(NAME test_selection_settle COMMAND test_selection_settle)

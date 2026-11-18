@@ -38,6 +38,24 @@ target_link_libraries(selectum_core
         Qt::Core
 )
 
+add_library(selectum_platform STATIC
+    src/platform/selection_settle.cpp
+    src/platform/selection_monitor.cpp
+    src/platform/noop_selection_monitor.cpp
+)
+target_include_directories(selectum_platform
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(selectum_platform
+    PUBLIC
+        selectum_abi
+        Qt::Core
+)
+# MOC for SelectionMonitor / NoopSelectionMonitor Q_OBJECT
+set_target_properties(selectum_platform PROPERTIES AUTOMOC ON)
+
 enable_testing()
 add_subdirectory(tests)
 add_subdirectory(plugins/com.selectum.stub)
@@ -81,6 +99,7 @@ target_compile_definitions(Selectum
 target_link_libraries(Selectum
     PRIVATE
         selectum_core
+        selectum_platform
         Qt::Core
         Qt::Widgets
 )
