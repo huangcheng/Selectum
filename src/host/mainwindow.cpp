@@ -13,16 +13,30 @@
 
 #include <core/invoke_async.h>
 
-MainWindow::MainWindow(selectum::PluginHost *host, QWidget *parent)
+#if defined(Q_OS_MACOS)
+#include <platform/macos/ax_selection.h>
+#endif
+
+MainWindow::MainWindow(selectum::PluginHost *host,
+                       selectum::SelectionMonitor *monitor,
+                       QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
     , m_host(host)
+    , m_monitor(monitor)
 {
     ui->setupUi(this);
     setWindowTitle(QStringLiteral("Selectum"));
 
     auto *central = ui->centralwidget;
     auto *layout = new QVBoxLayout(central);
+
+    auto *permRow = new QHBoxLayout();
+    m_permissionLabel = new QLabel(central);
+    m_permissionButton = new QPushButton(QStringLiteral("Enable Accessibility…"), central);
+    permRow->addWidget(m_permissionLabel, 1);
+    permRow->addWidget(m_permissionButton);
+    layout->addLayout(permRow);
 
     layout->addWidget(new QLabel(QStringLiteral("Fake selection text"), central));
 
@@ -45,12 +59,22 @@ MainWindow::MainWindow(selectum::PluginHost *host, QWidget *parent)
 
     connect(m_fakeButton, &QPushButton::clicked, this, &MainWindow::onFakeSelection);
     connect(m_invokeButton, &QPushButton::clicked, this, &MainWindow::onInvokeSelected);
+    connect(m_permissionButton, &QPushButton::clicked, this, &MainWindow::onRequestAccessibility);
     connect(m_matchList, &QListWidget::itemSelectionChanged, this, [this]() {
         m_invokeButton->setEnabled(m_matchList->currentItem() != nullptr);
     });
     connect(m_matchList, &QListWidget::itemDoubleClicked, this, [this](QListWidgetItem *) {
         onInvokeSelected();
     });
+
+    if (m_monitor) {
+        connect(m_monitor,
+                &selectum::SelectionMonitor::selectionSettled,
+                this,
+                &MainWindow::onSelectionSettled);
+    }
+
+    refreshPermissionLabel();
 }
 
 MainWindow::~MainWindow()
@@ -58,18 +82,30 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::onSelectionSettled(const selectum::SelectionContext &context)
+{
+    m_textEdit->setText(context.text);
+    applyContext(context, true);
+}
+
 void MainWindow::onFakeSelection()
+{
+    applyContext(selectum::FakeSelectionInjector::makeContext(m_textEdit->text()), true);
+}
+
+void MainWindow::applyContext(const selectum::SelectionContext &context, bool autoInvoke)
 {
     m_matchList->clear();
     m_invokeButton->setEnabled(false);
+    m_lastContext = context;
+    m_hasContext = true;
 
     if (!m_host) {
         statusBar()->showMessage(QStringLiteral("No PluginHost"), 3000);
         return;
     }
 
-    const auto ctx = selectum::FakeSelectionInjector::makeContext(m_textEdit->text());
-    const auto matched = m_host->match(ctx, selectum::Trigger::Selection);
+    const auto matched = m_host->match(context, selectum::Trigger::Selection);
 
     for (const auto &manifest : matched) {
         auto *item = new QListWidgetItem(manifest.id, m_matchList);
@@ -82,13 +118,20 @@ void MainWindow::onFakeSelection()
     }
 
     m_matchList->setCurrentRow(0);
-    statusBar()->showMessage(QStringLiteral("%1 match(es)").arg(matched.size()), 3000);
-    onInvokeSelected();
+    statusBar()->showMessage(
+        QStringLiteral("%1 match(es) from %2")
+            .arg(matched.size())
+            .arg(context.appId.isEmpty() ? QStringLiteral("selection") : context.appId),
+        3000);
+
+    if (autoInvoke) {
+        onInvokeSelected();
+    }
 }
 
 void MainWindow::onInvokeSelected()
 {
-    if (!m_host) {
+    if (!m_host || !m_hasContext) {
         return;
     }
 
@@ -98,7 +141,6 @@ void MainWindow::onInvokeSelected()
     }
 
     const QString pluginId = item->data(Qt::UserRole).toString();
-    const auto ctx = selectum::FakeSelectionInjector::makeContext(m_textEdit->text());
 
     m_fakeButton->setEnabled(false);
     m_invokeButton->setEnabled(false);
@@ -106,7 +148,7 @@ void MainWindow::onInvokeSelected()
 
     selectum::invokeAsync(*m_host,
                           pluginId,
-                          ctx,
+                          m_lastContext,
                           selectum::Trigger::Selection,
                           {},
                           this,
@@ -115,6 +157,38 @@ void MainWindow::onInvokeSelected()
                               m_invokeButton->setEnabled(m_matchList->currentItem() != nullptr);
                               showResult(result);
                           });
+}
+
+void MainWindow::onRequestAccessibility()
+{
+#if defined(Q_OS_MACOS)
+    selectum::requestAccessibilityPermissionPrompt();
+#endif
+    refreshPermissionLabel();
+}
+
+void MainWindow::refreshPermissionLabel()
+{
+    using selectum::AccessibilityPermission;
+    AccessibilityPermission status = AccessibilityPermission::Unknown;
+    if (m_monitor) {
+        status = m_monitor->accessibilityPermission();
+    }
+
+    switch (status) {
+    case AccessibilityPermission::Granted:
+        m_permissionLabel->setText(QStringLiteral("Accessibility: granted — select text in another app"));
+        m_permissionButton->setEnabled(false);
+        break;
+    case AccessibilityPermission::Denied:
+        m_permissionLabel->setText(QStringLiteral("Accessibility: denied — Fake selection still works"));
+        m_permissionButton->setEnabled(true);
+        break;
+    case AccessibilityPermission::Unknown:
+        m_permissionLabel->setText(QStringLiteral("Accessibility: unavailable on this platform"));
+        m_permissionButton->setEnabled(false);
+        break;
+    }
 }
 
 void MainWindow::showResult(const selectum::Result &result)

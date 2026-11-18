@@ -9,6 +9,7 @@
 
 #include <core/plugin_host.h>
 #include <core/stub_secrets_store.h>
+#include <platform/selection_monitor.h>
 
 namespace {
 
@@ -71,7 +72,9 @@ int main(int argc, char *argv[])
     host.setSecretsStore(&secrets);
     scanPlugins(host);
 
-    MainWindow w(&host);
+    auto monitor = selectum::createSelectionMonitor(&a);
+    MainWindow w(&host, monitor.get());
+    monitor->start();
     w.show();
     return QApplication::exec();
 }
